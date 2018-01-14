@@ -208,7 +208,7 @@ static int decode_arg (int * i, int argc, char ** argv)
 
 static int chattr_dir_proc(const char *, struct dirent *, void *);
 
-static int change_attributes(const char * name)
+static int change_attributes(const char * name, int skip_links)
 {
 	unsigned long flags;
 	STRUCT_STAT	st;
@@ -219,7 +219,9 @@ static int change_attributes(const char * name)
 				 _("while trying to stat %s"), name);
 		return -1;
 	}
-
+	if (skip_links && S_ISLNK(st.st_mode)) {
+		return 0;
+	}
 	if (fgetflags(name, &flags) == -1) {
 		if (!silent)
 			com_err(program_name, errno,
@@ -299,7 +301,7 @@ static int chattr_dir_proc (const char * dir_name, struct dirent * de,
 			return -1;
 		}
 		sprintf(path, "%s/%s", dir_name, de->d_name);
-		ret = change_attributes(path);
+		ret = change_attributes(path, 1);
 		free(path);
 	}
 	return ret;
@@ -349,7 +351,7 @@ int main (int argc, char ** argv)
 		fprintf (stderr, "chattr %s (%s)\n",
 			 E2FSPROGS_VERSION, E2FSPROGS_DATE);
 	for (j = i; j < argc; j++) {
-		err = change_attributes (argv[j]);
+		err = change_attributes (argv[j], 0);
 		if (err)
 			retval = 1;
 	}
